@@ -157,10 +157,10 @@ def imshow(img, title):
 
 
 def plot_loss(x, y):
-    plt.plot(x, y, required_interactive_framework=True)
+    plt.plot(x, y)
     plt.xlabel("Iteration")
     plt.ylabel("|| D(E(x)) - x ||")
-    plt.show(required_interactive_framework=True)
+    plt.show()
 
 
 if __name__ == '__main__':
