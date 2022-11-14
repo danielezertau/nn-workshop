@@ -73,26 +73,44 @@ class AE(nn.Module):
         )
 
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(1, 128, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 32 x 32 x 128
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 2 x 2 x 128
+
+            nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 4 x 4 x 128
+
+            nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 8 x 8 x 128
 
             nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 64 x 64 x 64
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
+
+            nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 32 x 32 x 64
 
             nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 128 x 128 x 32
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 64 x 64 x 32
+
+            nn.ConvTranspose2d(32, 32, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 256 x 256 x 32
 
             nn.ConvTranspose2d(32, 3, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(3),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 256 x 256 x 3
+
+            nn.Sigmoid()
         )
 
     def forward(self, x):
         z = self.encoder(x)
-        return self.decoder(torch.reshape(z, (BATCH_SIZE, 1, 16, 16)))
+        return self.decoder(torch.reshape(z, (BATCH_SIZE, 256, 1, 1)))
 
 
 def weights_init(m):
@@ -139,10 +157,10 @@ def imshow(img, title):
 
 
 def plot_loss(x, y):
-    plt.plot(x, y)
+    plt.plot(x, y, required_interactive_framework=True)
     plt.xlabel("Iteration")
     plt.ylabel("|| D(E(x)) - x ||")
-    plt.show()
+    plt.show(required_interactive_framework=True)
 
 
 if __name__ == '__main__':
