@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.utils
@@ -13,6 +12,15 @@ BATCH_SIZE = 16
 LEARNING_RATE = 5e-4
 ADAM_BETAS = (0.9, 0.999)
 RELU_SLOPE = 0.1
+
+
+class View(nn.Module):
+    def __init__(self, shape):
+        super(View, self).__init__()
+        self.shape = shape
+
+    def forward(self, x):
+        return x.view(*self.shape)
 
 
 class AE(nn.Module):
@@ -62,20 +70,22 @@ class AE(nn.Module):
 
             nn.MaxPool2d(2),  # 2 x 2 x 128
 
-            nn.Conv2d(128, 256, 3, padding="same"),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            # nn.Conv2d(128, 256, 3, padding="same"),
+            # nn.BatchNorm2d(256),
+            # nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
-            nn.MaxPool2d(2),  # 1 x 1 x 256
+            # nn.MaxPool2d(2),  # 1 x 1 x 256
 
+            nn.Flatten(),  # 1 x 256
+            nn.Linear(512, 256),
             nn.Sigmoid(),
-            nn.Flatten()  # 1 x 256
         )
 
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 2 x 2 x 128
+            nn.Linear(256, 512),
+            # nn.LeakyReLU(RELU_SLOPE),
+
+            View((BATCH_SIZE, 128, 2, 2)),
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
@@ -110,7 +120,7 @@ class AE(nn.Module):
 
     def forward(self, x):
         z = self.encoder(x)
-        return self.decoder(torch.reshape(z, (BATCH_SIZE, 256, 1, 1)))
+        return self.decoder(z)
 
 
 def weights_init(m):
