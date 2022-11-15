@@ -1,17 +1,23 @@
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.utils
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 
+DATASET_DIR = "./dataset"
+RESULTS_DIR = "results"
 
 # Hyper Parameters
-BATCH_SIZE = 16
-LEARNING_RATE = 5e-4
+NUM_TEST_IMAGES = 1000
+TRAIN_BATCH_SIZE = 32
+TEST_BATCH_SIZE = 32
+LEARNING_RATE = 1e-3
 ADAM_BETAS = (0.9, 0.999)
 RELU_SLOPE = 0.1
+NUM_EPOCHS = 20
 
 
 class View(nn.Module):
@@ -83,9 +89,13 @@ class AE(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.Linear(256, 512),
-            # nn.LeakyReLU(RELU_SLOPE),
+            nn.LeakyReLU(RELU_SLOPE),
 
-            View((BATCH_SIZE, 128, 2, 2)),
+            View((-1, 128, 2, 2)),  # 2 x 2 x 128
+
+            # nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
+            # nn.BatchNorm2d(128),
+            # nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 2 x 2 x 128
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
@@ -132,46 +142,67 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def train_ae():
+def train_test_ae():
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     ae = AE()
+    ae.to(device)
     ae.apply(weights_init)
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(ae.parameters(), lr=LEARNING_RATE, betas=ADAM_BETAS)
     transform = transforms.Compose([transforms.Resize(256),
                                     transforms.ToTensor()])
-    dataset = datasets.ImageFolder("./dataset", transform=transform)
-    dataloader = DataLoader(dataset, BATCH_SIZE, shuffle=True)
+    dataset = datasets.ImageFolder(DATASET_DIR, transform=transform)
+    test_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES))
+    train_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES, len(dataset)))
+    test_dataloader = DataLoader(test_dataset, TEST_BATCH_SIZE, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, TRAIN_BATCH_SIZE, shuffle=True)
 
-    loss_arr = []
-    for i, data in enumerate(dataloader):
-        input_images, _ = data
-        optimizer.zero_grad()
-        output_images = ae(input_images)
-        loss = loss_fn(input_images, output_images)
-        loss_arr.append(loss.item())
-        loss.backward()
-        optimizer.step()
-        print(f'Iteration {i} has loss {loss}')
-        if i % 100 == 0 and i != 0:
-            plot_loss(np.arange(len(loss_arr)), loss_arr)
-            imshow(torchvision.utils.make_grid(input_images), "input")
-            imshow(torchvision.utils.make_grid(output_images), "output")
+    train_loss_arr = []
+    for epoch in range(NUM_EPOCHS):
+        print(f"Epoch {epoch}")
+        for i, data in enumerate(train_dataloader, start=1):
+            input_images = data[0].to(device)
+            optimizer.zero_grad()
+            output_images = ae(input_images)
+            loss = loss_fn(input_images, output_images)
+            train_loss_arr.append(loss.item())
+            loss.backward()
+            optimizer.step()
+            print(f'Training epoch {epoch} iteration {i} has loss {loss}')
+            if i % 500 == 0:
+                plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"train_loss_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(input_images), "input", f"train_input_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(output_images), "output", f"train_output_{epoch}_{i}.pdf")
+
+        test_loss = 0
+        with torch.no_grad():
+            for i, data in enumerate(test_dataloader, start=1):
+                input_images = data[0].to(device)
+                output_images = ae(input_images)
+                loss = loss_fn(input_images, output_images)
+                test_loss += loss.item()
+                if i % 10 == 0:
+                    imshow(torchvision.utils.make_grid(input_images), "input", f"test_input_{epoch}_{i}.pdf")
+                    imshow(torchvision.utils.make_grid(output_images), "output", f"test_output_{epoch}_{i}.pdf")
+            print(f'Epoch {epoch} average test loss: {test_loss / len(test_dataloader)}')
 
 
-def imshow(img, title):
-    # img = img / 2 + 0.5     # un-normalize
-    np_img = img.numpy()
-    plt.imshow(np.transpose(np_img, (1, 2, 0)))
+def imshow(img, title, file_name):
+    plt.clf()
+    np_img = img.cpu().numpy()
     plt.title(title)
-    plt.show()
+    plt.imshow(np.transpose(np_img, (1, 2, 0)))
+    plt.savefig(f"{RESULTS_DIR}/{file_name}")
 
 
-def plot_loss(x, y):
-    plt.plot(x, y)
+def plot_loss(x, y, filename):
+    plt.clf()
+    plt.title(f"Training Loss")
     plt.xlabel("Iteration")
     plt.ylabel("|| D(E(x)) - x ||")
-    plt.show()
+    plt.plot(x, y)
+    plt.savefig(f"{RESULTS_DIR}/{filename}")
 
 
 if __name__ == '__main__':
-    train_ae()
+    train_test_ae()
