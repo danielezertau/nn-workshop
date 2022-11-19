@@ -138,6 +138,7 @@ def train_test_ae(config):
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(ae.parameters(), lr=lr, betas=ADAM_BETAS, weight_decay=weight_decay)
     transform = transforms.Compose([transforms.Resize(256),
+                                    transforms.CenterCrop(256),
                                     transforms.ToTensor()])
     dataset = datasets.ImageFolder(DATASET_DIR, transform=transform)
     test_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES))
@@ -158,7 +159,7 @@ def train_test_ae(config):
             optimizer.step()
             print(f'Training epoch {epoch} iteration {i} has loss {loss}')
             if i % 500 == 0:
-                plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"train_loss_{epoch}_{i}.pdf")
+                plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"{results_dir}/train_loss_{epoch}_{i}.pdf")
                 imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/train_input_{epoch}_{i}.pdf")
                 imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/train_output_{epoch}_{i}.pdf")
 
