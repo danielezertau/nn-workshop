@@ -17,7 +17,7 @@ TEST_BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 ADAM_BETAS = (0.9, 0.999)
 RELU_SLOPE = 0.1
-NUM_EPOCHS = 20
+NUM_EPOCHS = 10
 
 
 class View(nn.Module):
@@ -26,7 +26,7 @@ class View(nn.Module):
         self.shape = shape
 
     def forward(self, x):
-        return x.view(*self.shape)
+        return x.reshape(*self.shape)
 
 
 class AE(nn.Module):
@@ -35,75 +35,62 @@ class AE(nn.Module):
         super(AE, self).__init__()
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 32, 3, padding="same"),
+            nn.MaxPool2d(2),  # 128 x 128 x 32
             nn.BatchNorm2d(32),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
-
-            nn.MaxPool2d(2),  # 128 x 128 x 32
 
             nn.Conv2d(32, 32, 3, padding="same"),
+            nn.MaxPool2d(2),  # 64 x 64 x 32
             nn.BatchNorm2d(32),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
-            nn.MaxPool2d(2),  # 64 x 64 x 32
-
             nn.Conv2d(32, 64, 3, padding="same"),
+            nn.MaxPool2d(2),  # 32 x 32 x 64
             nn.BatchNorm2d(64),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
-
-            nn.MaxPool2d(2),  # 32 x 32 x 64
 
             nn.Conv2d(64, 64, 3, padding="same"),
+            nn.MaxPool2d(2),  # 16 x 16 x 64
             nn.BatchNorm2d(64),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
-            nn.MaxPool2d(2),  # 16 x 16 x 64
-
             nn.Conv2d(64, 128, 3, padding="same"),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
-
             nn.MaxPool2d(2),  # 8 x 8 x 128
-
-            nn.Conv2d(128, 128, 3, padding="same"),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
+            nn.Conv2d(128, 128, 3, padding="same"),
             nn.MaxPool2d(2),  # 4 x 4 x 128
-
-            nn.Conv2d(128, 128, 3, padding="same"),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
+            nn.Conv2d(128, 128, 3, padding="same"),
             nn.MaxPool2d(2),  # 2 x 2 x 128
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
-            # nn.Conv2d(128, 256, 3, padding="same"),
-            # nn.BatchNorm2d(256),
-            # nn.LeakyReLU(RELU_SLOPE, inplace=True),
-
-            # nn.MaxPool2d(2),  # 1 x 1 x 256
+            nn.Conv2d(128, 256, 3, padding="same"),
+            nn.MaxPool2d(2),  # 1 x 1 x 256
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),
 
             nn.Flatten(),  # 1 x 256
-            nn.Linear(512, 256),
-            nn.Sigmoid(),
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(256, 512),
-            nn.LeakyReLU(RELU_SLOPE),
+            View((-1, 256, 1, 1)),
 
-            View((-1, 128, 2, 2)),  # 2 x 2 x 128
-
-            # nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
-            # nn.BatchNorm2d(128),
-            # nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 2 x 2 x 128
+            nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 4 x 4 x 128
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 8 x 8 x 128
+            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(64),
@@ -154,7 +141,7 @@ def train_test_ae():
     dataset = datasets.ImageFolder(DATASET_DIR, transform=transform)
     test_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES))
     train_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES, len(dataset)))
-    test_dataloader = DataLoader(test_dataset, TEST_BATCH_SIZE, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, TEST_BATCH_SIZE, shuffle=False)
     train_dataloader = DataLoader(train_dataset, TRAIN_BATCH_SIZE, shuffle=True)
 
     train_loss_arr = []
