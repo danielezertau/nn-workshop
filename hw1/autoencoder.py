@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import yaml
 
 DATASET_DIR = "./dataset"
-RESULTS_DIR = "results"
 
 # Hyper Parameters
 NUM_TEST_IMAGES = 1000
@@ -132,6 +131,7 @@ def train_test_ae(config):
     lr = float(config['lr'])
     weight_decay = float(config['weight_decay'])
     batch_size = int(config['batch_size'])
+    results_dir = config['results_dir']
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     ae = AE(config)
     ae.to(device)
@@ -160,8 +160,8 @@ def train_test_ae(config):
             print(f'Training epoch {epoch} iteration {i} has loss {loss}')
             if i % 500 == 0:
                 plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"train_loss_{epoch}_{i}.pdf")
-                imshow(torchvision.utils.make_grid(input_images), "input", f"train_input_{epoch}_{i}.pdf")
-                imshow(torchvision.utils.make_grid(output_images), "output", f"train_output_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/train_input_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/train_output_{epoch}_{i}.pdf")
 
         test_loss = 0
         with torch.no_grad():
@@ -171,26 +171,26 @@ def train_test_ae(config):
                 loss = loss_fn(input_images, output_images)
                 test_loss += loss.item()
                 if i % 10 == 0:
-                    imshow(torchvision.utils.make_grid(input_images), "input", f"test_input_{epoch}_{i}.pdf")
-                    imshow(torchvision.utils.make_grid(output_images), "output", f"test_output_{epoch}_{i}.pdf")
+                    imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/test_input_{epoch}_{i}.pdf")
+                    imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/test_output_{epoch}_{i}.pdf")
             print(f'Epoch {epoch} average test loss: {test_loss / len(test_dataloader)}')
 
 
-def imshow(img, title, file_name):
+def imshow(img, title, file_path):
     plt.clf()
     np_img = img.cpu().numpy()
     plt.title(title)
     plt.imshow(np.transpose(np_img, (1, 2, 0)))
-    plt.savefig(f"{RESULTS_DIR}/{file_name}")
+    plt.savefig(file_path)
 
 
-def plot_loss(x, y, filename):
+def plot_loss(x, y, file_path):
     plt.clf()
     plt.title(f"Training Loss")
     plt.xlabel("Iteration")
     plt.ylabel("|| D(E(x)) - x ||")
     plt.plot(x, y)
-    plt.savefig(f"{RESULTS_DIR}/{filename}")
+    plt.savefig(file_path)
 
 
 def load_conf():

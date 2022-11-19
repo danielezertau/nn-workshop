@@ -3,3 +3,4 @@
 "weight_decay": 1e-8
 "batch_size": 32
 "num_epochs": 10
+"results_dir": "results"
