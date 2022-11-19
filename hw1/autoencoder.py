@@ -14,7 +14,6 @@ DATASET_DIR = "./dataset"
 NUM_TEST_IMAGES = 1000
 TEST_BATCH_SIZE = 32
 ADAM_BETAS = (0.9, 0.999)
-NUM_EPOCHS = 10
 
 
 class View(nn.Module):
