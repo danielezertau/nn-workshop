@@ -6,17 +6,15 @@ import torchvision.utils
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
+import yaml
 
 DATASET_DIR = "./dataset"
 RESULTS_DIR = "results"
 
 # Hyper Parameters
 NUM_TEST_IMAGES = 1000
-TRAIN_BATCH_SIZE = 32
 TEST_BATCH_SIZE = 32
-LEARNING_RATE = 1e-3
 ADAM_BETAS = (0.9, 0.999)
-RELU_SLOPE = 0.1
 NUM_EPOCHS = 10
 
 
@@ -31,48 +29,49 @@ class View(nn.Module):
 
 class AE(nn.Module):
 
-    def __init__(self):
+    def __init__(self, config):
         super(AE, self).__init__()
+        relu_slope = float(config['relu_slope'])
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 32, 3, padding="same"),
             nn.MaxPool2d(2),  # 128 x 128 x 32
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(32, 32, 3, padding="same"),
             nn.MaxPool2d(2),  # 64 x 64 x 32
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(32, 64, 3, padding="same"),
             nn.MaxPool2d(2),  # 32 x 32 x 64
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(64, 64, 3, padding="same"),
             nn.MaxPool2d(2),  # 16 x 16 x 64
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(64, 128, 3, padding="same"),
             nn.MaxPool2d(2),  # 8 x 8 x 128
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(128, 128, 3, padding="same"),
             nn.MaxPool2d(2),  # 4 x 4 x 128
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(128, 128, 3, padding="same"),
             nn.MaxPool2d(2),  # 2 x 2 x 128
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Conv2d(128, 256, 3, padding="same"),
             nn.MaxPool2d(2),  # 1 x 1 x 256
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),
+            nn.LeakyReLU(relu_slope, inplace=True),
 
             nn.Flatten(),  # 1 x 256
         )
@@ -82,35 +81,35 @@ class AE(nn.Module):
 
             nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
+            nn.LeakyReLU(relu_slope, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
+            nn.LeakyReLU(relu_slope, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
+            nn.LeakyReLU(relu_slope, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 16 x 16 x 64
+            nn.LeakyReLU(relu_slope, inplace=True),  # 16 x 16 x 64
 
             nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 32 x 32 x 64
+            nn.LeakyReLU(relu_slope, inplace=True),  # 32 x 32 x 64
 
             nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 64 x 64 x 32
+            nn.LeakyReLU(relu_slope, inplace=True),  # 64 x 64 x 32
 
             nn.ConvTranspose2d(32, 32, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 256 x 256 x 32
+            nn.LeakyReLU(relu_slope, inplace=True),  # 256 x 256 x 32
 
             nn.ConvTranspose2d(32, 3, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(3),
-            nn.LeakyReLU(RELU_SLOPE, inplace=True),  # 256 x 256 x 3
+            nn.LeakyReLU(relu_slope, inplace=True),  # 256 x 256 x 3
 
             nn.Sigmoid()
         )
@@ -129,23 +128,26 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def train_test_ae():
+def train_test_ae(config):
+    lr = float(config['lr'])
+    weight_decay = float(config['weight_decay'])
+    batch_size = int(config['batch_size'])
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    ae = AE()
+    ae = AE(config)
     ae.to(device)
     ae.apply(weights_init)
     loss_fn = nn.MSELoss()
-    optimizer = optim.Adam(ae.parameters(), lr=LEARNING_RATE, betas=ADAM_BETAS)
+    optimizer = optim.Adam(ae.parameters(), lr=lr, betas=ADAM_BETAS, weight_decay=weight_decay)
     transform = transforms.Compose([transforms.Resize(256),
                                     transforms.ToTensor()])
     dataset = datasets.ImageFolder(DATASET_DIR, transform=transform)
     test_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES))
     train_dataset = Subset(dataset, np.arange(NUM_TEST_IMAGES, len(dataset)))
     test_dataloader = DataLoader(test_dataset, TEST_BATCH_SIZE, shuffle=False)
-    train_dataloader = DataLoader(train_dataset, TRAIN_BATCH_SIZE, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True)
 
     train_loss_arr = []
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(config['num_epochs']):
         print(f"Epoch {epoch}")
         for i, data in enumerate(train_dataloader, start=1):
             input_images = data[0].to(device)
@@ -191,5 +193,14 @@ def plot_loss(x, y, filename):
     plt.savefig(f"{RESULTS_DIR}/{filename}")
 
 
+def load_conf():
+    with open("config.yaml", "r") as f:
+        try:
+            return yaml.safe_load(f)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+
 if __name__ == '__main__':
-    train_test_ae()
+    conf = load_conf()
+    train_test_ae(conf)
