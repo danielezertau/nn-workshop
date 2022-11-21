@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -131,6 +133,8 @@ def train_test_ae(config):
     weight_decay = float(config['weight_decay'])
     batch_size = int(config['batch_size'])
     results_dir = config['results_dir']
+    if not os.path.isdir(results_dir):
+        os.mkdir(results_dir)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     ae = AE(config)
     ae.to(device)
@@ -159,9 +163,9 @@ def train_test_ae(config):
             optimizer.step()
             print(f'Training epoch {epoch} iteration {i} has loss {loss}')
             if i % 500 == 0:
-                plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"{results_dir}/train_loss_{epoch}_{i}.pdf")
-                imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/train_input_{epoch}_{i}.pdf")
-                imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/train_output_{epoch}_{i}.pdf")
+                plot_loss(np.arange(len(train_loss_arr)), train_loss_arr, f"{results_dir}/{results_dir}_train_loss_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/{results_dir}_train_input_{epoch}_{i}.pdf")
+                imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/{results_dir}_train_output_{epoch}_{i}.pdf")
 
         test_loss = 0
         with torch.no_grad():
@@ -171,8 +175,8 @@ def train_test_ae(config):
                 loss = loss_fn(input_images, output_images)
                 test_loss += loss.item()
                 if i % 10 == 0:
-                    imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/test_input_{epoch}_{i}.pdf")
-                    imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/test_output_{epoch}_{i}.pdf")
+                    imshow(torchvision.utils.make_grid(input_images), "input", f"{results_dir}/{results_dir}_test_input_{epoch}_{i}.pdf")
+                    imshow(torchvision.utils.make_grid(output_images), "output", f"{results_dir}/{results_dir}_test_output_{epoch}_{i}.pdf")
             print(f'Epoch {epoch} average test loss: {test_loss / len(test_dataloader)}')
 
 
