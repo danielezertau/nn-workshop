@@ -1,6 +1,6 @@
-"lr": 1e-3
-"relu_slope": 0.1
+"lr": 5e-3
+"relu_slope": 1e-1
 "weight_decay": 1e-8
 "batch_size": 32
-"num_epochs": 10
-"results_dir": "results"
+"num_epochs": 15
+"results_dir": "fatboy"
